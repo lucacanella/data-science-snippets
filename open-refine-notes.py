@@ -30,3 +30,4 @@ from datetime import datetime #import datetime
 val = row["cells"]["update_date"]["value"] #take value from update_date cell
 dt = datetime.strptime(val, "%Y-%m-%d %H:%M:%S") #parse from format "%Y-%m-%d %H:%M:%S"
 return dt.strftime("%Y-%m-%d") #write to format "%Y-%m-%d"
+#as an alternative use dt.isoformat() to print as iso format 2018-01-24T16:52:06Z
