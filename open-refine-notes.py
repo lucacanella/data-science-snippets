@@ -46,3 +46,14 @@ for i in values_l: #for each value encoded in the current cell...
     valuesOk.append(i) #...append the value to the final list
 return "<delimiter>".join(valuesOk) #re-encode values and return
 #This procedure filters out values from a csv field when single values are equal to another value in the record.
+
+# List/CSV clean: (Python/Jython)
+# split string by delimiter (','), remove empty values and strip trailing whitespace, then join again.
+lstV = filter(None, value.split(',')) #split and remove null values
+clean = [x.strip(' \t') for x in lstV] #remove trailing whitespace (spaces and tabs)
+return ','.join(clean) #join again
+
+# First letter uppercase: (Python/Jython)
+return value[0].upper() + value[1:]
+
+
