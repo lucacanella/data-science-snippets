@@ -4,40 +4,68 @@
 # Jython ref link: http://www.jython.org/docs/index.html
 #
 
-# Map: (Python/Jython)
+
+#######################################
+# Map: 
+# Map values (ie. convert keys into labels)
+# (Python/Jython)
 d = dict({ 1: "A", 2: "B", 3: "C", 4: "D" }) #create a map (dictionary)
 return d[cells["type"]["value"]] #return mapped value
 
-# Regex: (Python/Jython)
+
+#######################################
+# Regex - search: 
+# Search pattern
+# (Python/Jython)
 import re
 g = re.search(ur'<REGEX>', value)
 return g
 
-# Regex 2: (Python/Jython)
+
+#######################################
+# Regex 2 - pattern extraction:
+# Search pattern on another column and export a group
+# (Python/Jython)
 import re
 rege = ur'(<regex_group>)' #regex string
 va = row["cells"]["description"]["value"] #get a column in this row
 g = re.search(rege, va) #search for regex in cell
 return g and len(g.group(1)) > 0 or 0 #return 1 if matched, hence group1 exists and is non empty, or return 0.
 
-# Regex 3: (Python/Jython)
+
+#######################################
+# Regex 3 - substitution:
+# Substitution
+# (Python/Jython)
 import re
 rex = re.compile("<regex_for_substitution>")
 return rex.sub("<substitution_value>", value)
 
-# Json: (Python/Jython)
+
+#######################################
+# Json:
+# Parse json value and export a single field
+# (Python/Jython)
 import json
 obj = json.loads(value) # parse json
 return obj and obj["field"] or "" #return single field or empty string
 
-# Datetime: (Python/Jython)
+
+#######################################
+# Datetime: 
+# parse date string and format again with another format 
+# (Python/Jython)
 from datetime import datetime #import datetime
-val = row["cells"]["update_date"]["value"] #take value from update_date cell
+val = row["cells"]["update_date"]["value"] #take string value from "update_date" cell
 dt = datetime.strptime(val, "%Y-%m-%d %H:%M:%S") #parse from format "%Y-%m-%d %H:%M:%S"
 return dt.strftime("%Y-%m-%d") #write to format "%Y-%m-%d"
 #as an alternative use dt.isoformat() to print as iso format 2018-01-24T16:52:06Z
 
-#parse multiple values within a cell (encoded as csv), and filter them out depending a value within another cell (Python/Jython)
+
+#######################################
+# List/CSV: 
+# parse multiple values within a cell (encoded as csv), and filter them out depending a value within another cell 
+#(Python/Jython)
 ref_value = cells["<column_name>"]["value"] #get a reference value from another cell
 values_l = value.split("<delimiter>") #split values within this cell
 valuesOk = list() #this will be the final list of values (filtered)
@@ -47,13 +75,83 @@ for i in values_l: #for each value encoded in the current cell...
 return "<delimiter>".join(valuesOk) #re-encode values and return
 #This procedure filters out values from a csv field when single values are equal to another value in the record.
 
-# List/CSV clean: (Python/Jython)
-# split string by delimiter (','), remove empty values and strip trailing whitespace, then join again.
-lstV = filter(None, value.split(',')) #split and remove null values
-clean = [x.strip(' \t') for x in lstV] #remove trailing whitespace (spaces and tabs)
-return ','.join(clean) #join again
 
-# First letter uppercase: (Python/Jython)
+#######################################
+# List/CSV clean: 
+# split string by delimiter (','), remove empty values and strip trailing whitespace, then join again.
+# (Python/Jython)
+if value != None and len(value) > 0:
+  lstV = filter(None, value.split(',')) #split and remove null values
+  clean = [x.strip(' \t') for x in lstV] #remove trailing whitespace (spaces and tabs)
+  return ','.join(clean) #join again
+else:
+  return None
+
+
+#######################################
+# Text:
+# First letter uppercase 
+# (Python/Jython)
 return value[0].upper() + value[1:]
 
 
+#######################################
+# HTML:
+# Parse HTML with custom parser to strip unsupported tags or map map them to supported version.
+# (Python/Jython)
+
+# Definition of a custom html parser
+class MyHTMLParser(HTMLParser):
+  supported_tags = [ "b", "i" ] # list of supported tags
+  result = [] # the result
+  #Handles start tags
+  def handle_starttag(self, tag, attrs):
+    if tag in self.supported_tags:
+      self.result.append("&lt;"+tag+"&gt;")
+    if tag == "br": #convert different br sintax to a common version
+      self.result.append("&lt;br&gt;")
+    if tag == "em": #convert em tags to i
+      self.result.append("&lt;i&gt;")
+    if tag == "strong": #convert strong tags to b
+      self.result.append("&lt;b&gt;")
+  #Handles end tags
+  def handle_endtag(self, tag):
+    if tag in self.supported_tags:
+      self.result.append("&lt;/"+tag+"&gt;")
+    if tag == "em":
+      self.result.append("&lt;/i&gt;")
+    if tag == "strong":
+      self.result.append("&lt;/b&gt;")
+  #Handles tags data (content)
+  def handle_data(self, data):
+    s_data = data.replace("&lt;br&gt;&lt;br&gt;", "&lt;br&gt;") #remove duplicate br tags
+    self.result.append(s_data)
+  #Returns the result
+  def get_res(self):
+    return ''.join(self.result) #join results into a single result string
+
+parser = MyHTMLParser() # create parser instance
+parser.feed(value) #feed html string to parser
+parser.close() #close the parser
+return parser.get_res() #get parsed results
+
+
+#######################################
+# Hashing/MD5:
+# Create a base64 encoded md5 hash (ie. to use as key), using different record properties
+# (Python/Jython)
+
+import base64
+import md5
+
+m = md5.new() # create new md5 object
+m.update(cells["field1"]["value"]) #add "field1" value for digest
+m.update(cells["field2"]["value"]) #add "field2" value for digest
+m.update(cells["field3"]["value"]) #add "field3" value for digest
+
+### Warning: md5 may raise a "UnicodeEncodeError" if some 
+### unicode characters are found in the fields for digest.
+### Please watch for errors (handle by Facet by Error).
+
+#digest and base64 encode
+return base64.b64encode(m.digest())
