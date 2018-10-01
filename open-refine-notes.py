@@ -77,6 +77,16 @@ return "<delimiter>".join(valuesOk) #re-encode values and return
 
 
 #######################################
+# List/CSV/Duplicates: 
+# parse multiple values within a cell (encoded as csv), remove duplicates, rejoin
+#(Python/Jython)
+delimiter = "<delimiter>"
+values_l = value.split(delimiter) #split values within this cell
+valuesOk = set(values_l) #this will be the final set of values: since it's a set it doesn't contain dups
+return delimiter.join(valuesOk)
+
+
+#######################################
 # List/CSV clean: 
 # split string by delimiter (','), remove empty values and strip trailing whitespace, then join again.
 # (Python/Jython)
@@ -99,6 +109,9 @@ return value[0].upper() + value[1:]
 # HTML:
 # Parse HTML with custom parser to strip unsupported tags or map map them to supported version.
 # (Python/Jython)
+
+#Imports
+from HTMLParser import HTMLParser
 
 # Definition of a custom html parser
 class MyHTMLParser(HTMLParser):
@@ -155,3 +168,79 @@ m.update(cells["field3"]["value"]) #add "field3" value for digest
 
 #digest and base64 encode
 return base64.b64encode(m.digest())
+
+
+#######################################
+# Web/check urls:
+# Checks urls response
+# (Python/Jython)
+
+import urllib2, base64
+
+request = urllib2.Request(value)
+base64string = base64.b64encode('%s:%s' % ('_user_', '_password_'))
+request.add_header("Authorization", "Basic %s" % base64string)
+req = urllib2.urlopen(request)
+if req:
+    return req.getcode()
+    #return req.read()
+else:
+    return None
+
+
+#######################################
+# Web/Download image:
+# Download files (images)
+# (Python/Jython)
+
+import urllib2, urlparse, os
+
+imgUrl = value #set image url here
+localbasedir = './tmp/' #set here local base directory
+headers = {} #additional headers here
+
+if imgUrl != None and len(imgUrl) > 0:
+    
+    uparsed = urlparse.urlparse(imgUrl) #extract basename
+    fname = os.path.basename(uparsed.path)
+    localFname = os.path.realpath(os.path.join(localbasedir, fname))
+    
+    imgRequest = urllib2.Request(imgUrl, headers=headers) #read image from url
+    imgData = urllib2.urlopen(imgRequest).read()
+	 
+    output = open(localFname,'wb') #write file locally
+    output.write(imgData)
+    output.close()
+    
+    return localFname
+else:
+    return ""
+
+
+#######################################
+# Web/Check response status:
+# Make a request to a single url and output response status.
+# (Python/Jython)
+
+import urllib2, urlparse, os
+
+resUrl = value #set url here
+headers = {} #additional headers here
+
+if resUrl != None and len(resUrl) > 0:
+    resRequest = urllib2.Request(resUrl, headers=headers) #make url request
+    res = urllib2.urlopen(resRequest)
+    res.close()
+    return res.getcode()
+else:
+    return ""
+
+
+#######################################
+# Cross/Join:
+# Get by key all values across rows on another project, then join them in a new column.
+# (Python/Jython)
+
+# cross(string projectName, string columnName) -> Gets all rows that have the same value for "columnName" from another project.
+# forNonBlank(expression o, variable v, expression eNonBlank, expression eBlank) -> handles rows, whether they are blank (cross hasn't returned a reference) or not.
+forEach(cell.cross("<Project name>", "<Key Field>"), r, forNonBlank(r.cells["<Column to merge>"].value,v,v,"")).join("|")
