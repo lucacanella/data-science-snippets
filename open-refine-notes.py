@@ -162,6 +162,23 @@ m.update(cells["field1"]["value"]) #add "field1" value for digest
 m.update(cells["field2"]["value"]) #add "field2" value for digest
 m.update(cells["field3"]["value"]) #add "field3" value for digest
 
+
+#######################################
+# Hashing/SHA256:
+# Digest 3 times and create hex output of a salted string
+# (Python/Jython)
+
+import hashlib
+mainValue = cells["celltohash"]["value"]
+salt1 = '<salt1>'
+salt2 = '<salt2>'
+keystr = salt1 + mainValue + salt2
+shaIter1 = hashlib.sha256(keystr).hexdigest()
+shaIter2 = hashlib.sha256(shaIter1 ).hexdigest()
+shaIter3 = hashlib.sha256(shaIter2 ).hexdigest()
+return shaIter3
+
+
 ### Warning: md5 may raise a "UnicodeEncodeError" if some 
 ### unicode characters are found in the fields for digest.
 ### Please watch for errors (handle by Facet by Error).
@@ -239,7 +256,7 @@ else:
 #######################################
 # Cross/Join:
 # Get by key all values across rows on another project, then join them in a new column.
-# (Python/Jython)
+# (GREL)
 
 # cross(string projectName, string columnName) -> Gets all rows that have the same value for "columnName" from another project.
 # forNonBlank(expression o, variable v, expression eNonBlank, expression eBlank) -> handles rows, whether they are blank (cross hasn't returned a reference) or not.
