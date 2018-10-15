@@ -19,7 +19,7 @@ return d[cells["type"]["value"]] #return mapped value
 # (Python/Jython)
 import re
 g = re.search(ur'<REGEX>', value)
-return g
+return g != None
 
 
 #######################################
@@ -261,3 +261,92 @@ else:
 # cross(string projectName, string columnName) -> Gets all rows that have the same value for "columnName" from another project.
 # forNonBlank(expression o, variable v, expression eNonBlank, expression eBlank) -> handles rows, whether they are blank (cross hasn't returned a reference) or not.
 forEach(cell.cross("<Project name>", "<Key Field>"), r, forNonBlank(r.cells["<Column to merge>"].value,v,v,"")).join("|")
+
+
+#######################################
+# HTML/Validate:
+# Grossly validate HTML structure identifying unclosed tags.
+# The procedure returns a comma separated list of tags that aren't matching.
+# When an empty string is returned the html structure should be ok.
+# (Python/Jython)
+
+#Imports
+from HTMLParser import HTMLParser
+
+cell_value = cells["Content"]["value"]
+# Definition of a custom html parser
+class MyHTMLParser(HTMLParser):
+  open_tags = []
+  errors = []
+  #Handles start tags
+  def handle_starttag(self, tag, attrs):
+    self.open_tags.append(tag)
+  #Handles end tags
+  def handle_endtag(self, tag):
+    last_closed = self.open_tags.pop()
+    if last_closed != tag:
+      self.errors.append(tag)
+  #Handles tags data (ignores content)
+  def handle_data(self, data):
+    pass
+  #Returns wether an error has occurred or not
+  def get_res(self):
+    return u",".join(self.errors)
+
+
+parser = MyHTMLParser() # create parser instance
+parser.feed(cell_value) #feed html string to parser
+parser.close() #close the parser
+return parser.get_res() #get parsed results
+
+
+#####################################
+# HTML/Validate v2:
+# Grossly validates HTML structure by matching starting and closing tags.
+# If an error is found the parser returns a string with the structure of the HTML (tags without content for debug purposes).
+# When an empty string is returned the html structure should be ok.
+# (Python/Jython)
+from HTMLParser import HTMLParser
+
+cell_val = cells["Content"]["value"]
+
+# Definition of a custom html parser
+class MyHTMLParser(HTMLParser):
+	errors = 0
+	tagstack = []
+	structr = []
+	depth = 0
+	#Handles start tags
+	def handle_starttag(self, tag, attrs):
+		self.tagstack.append(tag)
+		d = self.depth
+		if len(self.structr) > 0 and ("<"+tag+">") != self.structr[-1]:
+			tabs = "\r\n"
+		else:
+			tabs = ""
+		while d > 0:
+			tabs = tabs + "\t"
+			d -= 1
+		self.structr.append(tabs + "<"+tag+">")
+		self.depth += 1
+	#Handles end tags
+	def handle_endtag(self, tag):
+		last_tag = self.tagstack.pop()
+		if len(tag) > 0 and last_tag != tag:
+			self.errors += 1
+		self.structr.append("</"+tag+">")
+		self.depth -= 1
+	#Ignores tag content
+	def handle_data(self, data):
+		pass
+	#Returns the result
+	def get_res(self):
+		if self.errors > 0:
+			return str(self.errors)+" errors\r\n"+( "".join(self.structr) )
+		else:
+			return ""
+
+parser = MyHTMLParser() # create parser instance
+parser.feed(cell_val) #feed html string to parser
+parser.close() #close the parser
+return parser.get_res() #get structure if there are errors
