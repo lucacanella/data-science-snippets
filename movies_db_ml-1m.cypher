@@ -85,3 +85,17 @@ WITH u1, u2, cp
 LIMIT 10 //take at most 10 matches
 MATCH p=(u1)-[:RATED]->(:Movie)<-[:RATED]-(u2) // now recreate the paths between the users
 RETURN p, cp
+
+// Count rates and average rating per Genre for a user id '1'
+//
+MATCH (u:User {id: '1'})-[r:RATED]->(:Movie)-[:GENRE]->(g:Genre) // Starting from user '1', find all rated movies and their genre
+RETURN count(r) AS ratesCount, avg(toInt(r.rating)) as ratesAvg, g.name //now count rates, and average rating for each genre
+ORDER BY ratesCount DESC, ratesAvg DESC //sort results by rates count and rating average descending
+
+// Same as before but with added "score" calculation.
+//
+MATCH (u:User {id: '1'})-[r:RATED]->(:Movie)-[:GENRE]->(g:Genre) // Starting from user '1', find all rated movies and their genre
+WITH count(r) AS ratesCount, avg(toInt(r.rating)) as ratesAvg, g.name as genre //now count rates, and average rating for each genre
+RETURN ratesCount, ratesAvg, genre //now count rates, and average rating for each genre
+     , log10(ratesCount) * ratesAvg as score //calculate score
+ORDER BY score DESC //sort results by rates count and rating average descending
