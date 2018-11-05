@@ -99,3 +99,19 @@ WITH count(r) AS ratesCount, avg(toInt(r.rating)) as ratesAvg, g.name as genre /
 RETURN ratesCount, ratesAvg, genre //now count rates, and average rating for each genre
      , log10(ratesCount) * ratesAvg as score //calculate score
 ORDER BY score DESC //sort results by rates count and rating average descending
+
+
+// Find the user with the most matches in ratings with user 1;
+// then find 10 movies that user 2 rated the most, but user 1 hasn't rated yet.
+// 
+MATCH (u1:User { id: '1' })-[r1:RATED]->(:Movie)<-[r2:RATED]-(u2:User)
+WHERE r1.rating = r2.rating
+  AND u2 <> u1
+WITH u1, u2, COUNT(*) as cp
+WHERE cp > 1 //at least one 
+WITH u1, u2, cp ORDER BY cp DESC LIMIT 1 //Get user with most matching in movie ratings
+	MATCH (m:Movie)<-[r3:RATED]-(u2)
+	MATCH (m) WHERE NOT (u1)-[:RATED]->(m:Movie) //Get only movies that user 1 hasn't rated yet
+	RETURN cp, u1.id, u2.id, m.id, m.name, r3.rating
+	ORDER BY r3.rating DESC //sort by user 2 rating
+	LIMIT 10
