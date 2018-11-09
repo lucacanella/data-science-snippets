@@ -8,7 +8,6 @@ MATCH (u:User), (m:Movies) DETACH DELETE u, m; //Delete users and movies
 CREATE INDEX ON :Movie(name); //Create index on Movie.name
 CREATE INDEX ON :Movie(id);   //Create index on Movie.id
 CREATE INDEX ON :Genre(name); //Create index on Genre.name
-CREATE INDEX ON :Genre(id);   //Create index on Genre.name
 CREATE INDEX ON :User(id);    //Create index on User.id
 
 
@@ -18,7 +17,7 @@ CREATE INDEX ON :User(id);    //Create index on User.id
 // Import movies database
 
 LOAD CSV FROM 'file:///ml-1m/movies.dat' AS line FIELDTERMINATOR '^'
-MERGE (m:Movie { id: line[0], name: line[1] })
+MERGE (m:Movie { id: toInteger(line[0]), name: line[1] })
 WITH m, split(line[2], '|') AS genres
 UNWIND genres as gen
 	MERGE (g:Genre { name: gen })
@@ -28,21 +27,21 @@ UNWIND genres as gen
 // Import users database
 
 LOAD CSV FROM 'file:///ml-1m/users.dat' AS line FIELDTERMINATOR '^'
-CREATE (u:User { id: line[0], gender: line[1], age: line[2], occupation_code: line[3], zipcode: line[4] })
+CREATE (u:User { id: toInteger(line[0]), gender: line[1], age: toInteger(line[2]), occupation_code: toInteger(line[3]), zipcode: line[4] })
 
 
 // Import ratings
 
 USING PERIODIC COMMIT 1000
 LOAD CSV FROM 'file:///ml-1m/ratings.dat' AS line FIELDTERMINATOR '^'
-WITH line[2] AS rating, line[3] AS rTime, line[0] AS userid, line[1] as movieid
+WITH toInteger(line[2]) AS rating, toInteger(line[3]) AS rTime, toInteger(line[0]) AS userid, toInteger(line[1]) as movieid
 	MATCH (u:User { id: userid }),
 	      (m:Movie { id: movieid })
 	MERGE (u)-[:RATED { rating: rating, t: rTime }]->(m)
 
 //-----------------------------------------------------------------------------
 // Import fixes
-// Datatype fixes with apoc
+// Datatype fixes with apoc (not needed anymore)
 
 call apoc.periodic.iterate(
 	'MATCH (:User)-[r:RATED]->(:Movie) RETURN r',
@@ -117,7 +116,7 @@ UNWIND uRates as line
 WITH line[0] AS rating, line[1] AS movieid, 99997 AS userid, toInt(timestamp()/1000) as rTime
 	MATCH (u:User { id: userid }),
 	      (m:Movie { id: movieid })
-	MERGE (u)-[:RATED { rating: rating, t: rTime }]->(m)	
+	MERGE (u)-[:RATED { rating: rating, t: rTime }]->(m)
 
 //change rating time form 10 of the rates
 MATCH (:User { id: 99997 })-[r:RATED]->(:Movie)
@@ -245,5 +244,11 @@ LIMIT 10
 //Query top 10 users that rated specific genres: Movie genres with most ratings
 MATCH (g:Genre)-[:GENRE]-(:Movie)-[r:RATED]-(u:User)
 RETURN g.name, SUM(r.rating) as s, COUNT(*) AS c, AVG(r.rating) AS avg, u.id, u.age, u.gender
+ORDER BY avg DESC, s DESC, c DESC
+LIMIT 10
+
+//Get rating statistics for genre by user gender 'F'
+MATCH (:User { gender: 'F' })-[r:RATED]->(:Movie)-[:GENRE]-(g:Genre)
+RETURN g.name, SUM(r.rating) as s, COUNT(*) AS c, AVG(r.rating) AS avg
 ORDER BY avg DESC, s DESC, c DESC
 LIMIT 10
