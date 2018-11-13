@@ -350,3 +350,19 @@ parser = MyHTMLParser() # create parser instance
 parser.feed(cell_val) #feed html string to parser
 parser.close() #close the parser
 return parser.get_res() #get structure if there are errors
+
+
+#####################################
+# Text/GUID/Validate:
+# Validates GUID sintax.
+# (Python/Jython)
+import re
+return re.search("^[{(]?[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}[)}]?$", value, flags=re.IGNORECASE) != None
+
+#####################################
+# Text/Email/Validate:
+# Validates Email sintax.
+# WARNING: Could not match valid emails, or match invalid ones; please use at your own risk.
+# (Python/Jython)
+import re
+return re.search("^([a-zA-Z0-9])([a-zA-Z0-9-_\+\.]*)@([a-zA-Z0-9])([a-zA-Z0-9-_\+\.]*)([a-zA-Z0-9])(\.)([a-zA-Z]{2,4})$", value) != None

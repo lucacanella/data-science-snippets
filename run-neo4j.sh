@@ -4,10 +4,10 @@ docker run \
 	--publish=7473:7473 \
 	--publish=7474:7474 \
 	--publish=7687:7687 \
-	-v ${HOME}/neo4j/data:/data \
-	-v ${HOME}/neo4j/logs:/logs \
-	-v ${HOME}/neo4j/import:/import \
-	-v ${HOME}/neo4j/plugins:/plugins \
+	-v /${HOME}/neo4j/data:/data \
+	-v /${HOME}/neo4j/logs:/logs \
+	-v /${HOME}/neo4j/import:/import \
+	-v /${HOME}/neo4j/plugins:/plugins \
 	-p 80:7474 \
 	-p 8080:7687 \
 	-e NEO4J_dbms_security_procedures_unrestricted=apoc.\\\* \
