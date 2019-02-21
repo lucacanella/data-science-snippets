@@ -252,3 +252,13 @@ MATCH (:User { gender: 'F' })-[r:RATED]->(:Movie)-[:GENRE]-(g:Genre)
 RETURN g.name, SUM(r.rating) as s, COUNT(*) AS c, AVG(r.rating) AS avg
 ORDER BY avg DESC, s DESC, c DESC
 LIMIT 10
+
+//Find three possible "friends" of user id:1, by searching for users whose ratings match the most
+MATCH (u1:User {id: 1})-[r1:RATED]->(m:Movie)<-[r2:RATED]-(u2:User)
+WHERE r1.rating = r2.rating
+	WITH u1, count(m) as cm, u2
+		ORDER BY cm desc
+		LIMIT 3
+			WITH u1, u2
+			MATCH (u1:User)-[:RATED]->(m:Movie)<-[:RATED]-(u2:User)
+			RETURN u1, m, u2
