@@ -21,5 +21,10 @@ Neo4j 4.0.0 queries and utils that evolved from the 3.4.9 scripts (tested on doc
 
 [MovieLens 1M Dataset](https://grouplens.org/datasets/movielens/1m/)
 
+## DGraph - 1.2.1
+DGraph v1.2.1 queries and utils, a very simple usage example.
+* *dgraph-1.2.1/shell.sh*: Commands to run the DGraph standalone container
+* *dgraph-1.2.1/queries.nq*: Some queries
+
 ### Disclaimer
 This snippets are meant to be notes and utils, sometimes reminder of what I've been experimenting on different pieces of software, they are not meant to always work out-of-the-box. Use at your own risk!
