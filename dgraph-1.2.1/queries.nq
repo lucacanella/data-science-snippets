@@ -1,6 +1,7 @@
 #########################
 # Schema
-
+# Schema > Bulk edit > Paste > Apply Schema
+#
 type User {
   username
   password
@@ -26,7 +27,7 @@ name: string @index(hash) .
 password: password .
 
 #########################
-# Data
+# Queries
 
 {
   set {
@@ -40,7 +41,23 @@ password: password .
     _:a <username> "Luca" .
   	_:a <password> "123456" .
     _:a <resources> _:r .
-    _:a <group> _:g .
+  }
+}
+
+# get user data for "Luca"
+{
+  user(func: type("User")) @filter(eq(username, "Luca")) {
+    username
+  	password
+  	group {
+      name
+      resources {
+        name
+      }
+    }
+  	resources {
+      name
+    }
   }
 }
 
@@ -58,28 +75,6 @@ upsert {
     set {
       uid(u) <group> uid(g) .
       uid(g) <name> "Database users" .
-    }
-  }
-}
-
-
-
-#########################
-# Query
-
-# get user data for "Luca"
-{
-  user(func: type("User")) @filter(eq(username, "Luca")) {
-    username
-  	password
-  	group {
-      name
-      resources {
-        name
-      }
-    }
-  	resources {
-      name
     }
   }
 }
