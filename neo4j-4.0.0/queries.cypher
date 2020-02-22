@@ -2,13 +2,84 @@
 //  Queries
 
 //index db
-CREATE INDEX ON :Movie(name); //Create index on Movie.name
-CREATE INDEX ON :Movie(movieId);   //Create index on Movie.id
-CREATE INDEX ON :Genre(name); //Create index on Genre.name
-CREATE INDEX ON :User(userId);    //Create index on User.id
+CREATE INDEX ON :Movie(name); 
+CREATE INDEX ON :Genre(name); 
+CREATE INDEX ON :Movie(movieId);
+CREATE INDEX ON :User(userId); 
 
 //show indexes
 CALL db.indexes
+
+//explode movie genres into nodes
+MATCH (m:Movie)
+WITH m, split(m.genres, '|') AS genres
+UNWIND genres as gen
+	MERGE (g:Genre { name: gen })
+	MERGE (m)-[:GENRE]->(g)
+
+//copy user and movies ids to a string field
+MATCH (m:Movie) SET m.movieId = toString(ID(m))
+MATCH (u:User) SET u.userId = toString(ID(u))
+
+//add new user
+CREATE (u:User { userId: "1", gender: 'M', age: 35, occupation_code: 12, zipcode: '' })
+	
+//add rates for new user
+WITH [
+	[ 4, 1 ], 
+	[ 4, 2 ], 
+	[ 5, 12 ], 
+	[ 5, 18 ], 
+	[ 5, 19 ], 
+	[ 5, 32 ], 
+	[ 4, 34 ], 
+	[ 2, 44 ], 
+	[ 5, 47 ], 
+	[ 5, 110 ],
+	[ 5, 1967 ],
+	[ 5, 356 ],
+	[ 5, 1732 ],
+	[ 5, 344 ],
+	[ 5, 1073 ],
+	[ 5, 541 ],
+	[ 5, 1210 ],
+	[ 5, 1222 ],
+	[ 5, 2712 ],
+	[ 5, 2716 ],
+	[ 5, 2571 ],
+	[ 3, 1923 ],
+	[ 5, 353 ],
+	[ 3, 500 ],
+	[ 5, 3578 ],
+	[ 3, 2018 ],
+	[ 5, 2959 ],
+	[ 4, 1590 ],
+	[ 4, 1721 ],
+	[ 5, 1240 ],
+	[ 5, 648 ],
+	[ 5, 3863 ],
+	[ 5, 2115 ],
+	[ 5, 2139 ],
+	[ 5, 1517 ],
+	[ 5, 527 ],
+	[ 5, 170 ],
+	[ 5, 1676 ],
+	[ 5, 3527 ],
+	[ 5, 3703 ],
+	[ 5, 3704 ],
+	[ 5, 2916 ]
+] as uRates
+UNWIND uRates as line
+WITH line[0] AS rating, toString(line[1]) AS movieid, "1" AS userid, toInteger(timestamp()/1000) as rTime
+	MATCH (u:User { userId: userid }),
+	      (m:Movie { movieId: movieid })
+	MERGE (u)-[:RATED { rating: rating, t: rTime }]->(m)
+
+//change rating time form 10 of the rates
+MATCH (:User { userId: "1" })-[r:RATED]->(:Movie)
+WITH r LIMIT 10
+SET r.t = toInteger(timestamp()/1000)
+  
 
 //  Query single movie by name, with genre
 MATCH (m:Movie {name: 'Toy Story (1995)'})-[:GENRE]->(g:Genre) RETURN m,g
@@ -163,11 +234,3 @@ WHERE r1.rating = r2.rating
 			MATCH (u1)-[r1:RATED]->(m:Movie)<-[r2:RATED]-(u2)
       WHERE r1.rating = r2.rating
 			RETURN u1, m, u2
-
-// What for user 1051?
-MATCH (u1:User {userId: "1051"})-[r1:RATED]->(m:Movie)<-[r2:RATED]-(u2:User)
-WHERE r1.rating = r2.rating
-	WITH u1, count(m) as cm, u2
-		ORDER BY cm desc
-		LIMIT 1
-			RETURN u2, cm
