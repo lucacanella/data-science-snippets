@@ -1,0 +1,219 @@
+################
+# Schema
+
+<genres>: [uid] @reverse .
+<name>: string @index(exact, term) @upsert .
+<rated>: [uid] @reverse .
+
+type Person {
+  name
+  rated
+}
+
+type Movie {
+  name
+  genres
+}
+
+type Genre {
+  name
+}
+
+#################
+# Data
+
+{
+  set {
+  
+    #Genres
+    _:ac <dgraph.type> "Genre" .
+    _:ac <name> "Action" .
+    
+    _:ad <dgraph.type> "Genre" .
+    _:ad <name> "Adventure" .
+    
+    _:dr <dgraph.type> "Genre" .
+    _:dr <name> "Drama" .
+    
+    _:ro <dgraph.type> "Genre" .
+    _:ro <name> "Romance" .
+    
+    _:co <dgraph.type> "Genre" .
+    _:co <name> "Comedy" .
+    
+    #Movies
+    _:t <dgraph.type> "Movie" .
+    _:t <name> "Titanic" .
+    _:t <genres> _:dr .
+    _:t <genres> _:ro .
+    
+    _:fb <dgraph.type> "Movie" .
+    _:fb <name> "First Blood" .
+    _:fb <genres> _:ad .
+    _:fb <genres> _:ac .
+    
+    _:fj <dgraph.type> "Movie" .
+    _:fj <name> "Young Frankenstein" .
+    _:fj <genres> _:co .
+    
+    #People
+    _:a <dgraph.type> "Person" .
+    _:a <name> "Arturo" .
+    _:a <rated> _:fb (rating = 4) .
+    _:a <rated> _:t (rating = 2) .
+    _:a <rated> _:fj (rating = 5) .
+    
+    _:b <dgraph.type> "Person" .
+    _:b <name> "Bruno" .
+    _:b <rated> _:fb (rating = 4) .
+    _:b <rated> _:t (rating = 5) .
+    _:b <rated> _:fj (rating = 3) .
+    
+    _:c <dgraph.type> "Person" .
+    _:c <name> "Carla" .
+    _:c <rated> _:fb (rating = 3) .
+    _:c <rated> _:t (rating = 5) .
+    _:c <rated> _:fj (rating = 2) .
+
+  }
+}
+
+#################
+# Queries
+
+{
+  #Load everybody
+  p(func: type("Person")) {
+    expand(_all_)
+  }
+}
+
+{
+  #Load movies
+  m(func: type("Movie")) {
+    expand(_all_)
+  }
+}
+
+{
+  #Load genres
+  g(func: type("Genre")) {
+    expand(_all_)
+  }
+}
+
+{
+  #Genres for a given movie
+  t(func: type("Movie")) @filter(eq(name, "Titanic")) {
+    name
+    genres {
+      name
+    }
+  }
+}
+
+{
+  #Movies for a given genre
+  ac(func: type("Genre")) @filter(eq(name, "Action")) {
+    name
+    movies: ~genres {
+      name
+    }
+  }
+}
+
+{
+  #Ratings for given movie
+  ac(func: type("Movie")) @filter(eq(name, "Young Frankenstein")) {
+    name
+    ratings: ~rated @facets {
+      name
+    }
+  }
+}
+
+{
+  #Genres liked by someone
+  a(func: type("Person")) @filter(eq(name, "Arturo")) {
+    name
+    rated @facets(gt(rating, 3)) {
+      name
+      genres {
+        name
+      }
+    }
+  }
+}
+
+{
+  #Get someone who rated the same movies as someone did
+  b(func: type("Person")) @filter(eq(name, "Bruno")) @ignorereflex @cascade {
+    name
+    rated @facets {
+      name
+      rated_by: ~rated @facets {
+        name
+      }
+    }
+  }
+}
+
+{
+  # Who gave some movies the same rate as someone
+  # NOT WORKING!!!
+  # As of version 1.2.1 this is not working (https://github.com/dgraph-io/dgraph/issues/2406)
+  # "Message: line 9 column 24: variables are not allowed in facets filter."
+  b(func: type("Person")) @filter(eq(name, "Bruno")) @ignorereflex @cascade {
+    name
+    rated @facets(rs as rating) {
+      name
+      rated_by: ~rated @facets(eq(rating, val(rs))){
+        name
+      }
+    }
+  }
+}
+
+{
+  #Someone's average rating
+  p(func: type("Person")) @filter(eq(name, "Carla")) {
+    name
+    rated @facets(r as rating) {
+      name
+    }
+    avg(val(r))
+  }
+}
+
+{
+  # Movie average for all users
+  # Calculating the average ratings of users requires a variable that maps users to the sum of their ratings.
+  # https://docs.dgraph.io/query-language/#facets-and-aggregation
+  var(func: type("Person")) {
+    num_rated as math(1)
+    rated @facets(r as rating) {
+      avg_rating as math(r / num_rated)
+    }
+  }
+
+  data(func: uid(avg_rating)) {
+    name
+    val(avg_rating)
+  }
+}
+
+######################
+# Clear all data
+
+upsert {
+  query {
+    a(func: has(name)) {
+      uids as uid
+    }
+  }
+  mutation {
+    delete {
+      uid(uids) * * .
+    }
+  }
+}
